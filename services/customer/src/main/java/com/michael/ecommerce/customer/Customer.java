@@ -12,7 +12,7 @@ import org.springframework.data.mongodb.core.mapping.Document;
 @Builder
 @Getter
 @Setter
-@Document
+@Document(value = "customer")
 public class Customer {
     @Id
     private String id;
