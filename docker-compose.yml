@@ -5,15 +5,14 @@ services:
     environment:
       POSTGRES_USER: michael
       POSTGRES_PASSWORD: michael
-      PGDATA: /var/lib/postgresql/data
+      PGDATA: /data/postgres
     volumes:
-      - postgres:/var/lib/postgresql/data
+      - postgres:/data/postgres
     ports:
-      - 5432:5432
+      - "5432:5432"
     networks:
       - microservices-net
     restart: unless-stopped
-
 
   pgadmin:
     container_name: ms_pgadmin
@@ -25,45 +24,34 @@ services:
     volumes:
       - pgadmin:/var/lib/pgadmin
     ports:
-      - 5050:80
+      - "5050:80"
     networks:
       - microservices-net
     restart: unless-stopped
 
-  mongodb:
-    image: mongo:7.0.5
-    container_name: mongodb-ms
+  zipkin:
+    container_name: zipkin
+    image: openzipkin/zipkin
     ports:
-      - "27017:27017"
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: root
-      MONGO_INITDB_ROOT_PASSWORD: password
-      MONGO_INITDB_DATABASE: customer
+      - "9411:9411"
+    networks:
+      - microservices-net
 
-
+  mongodb:
+    image: mongo
+    container_name: mongo_db
+    ports:
+      - 27017:27017
     volumes:
-      - ./data:/data/db
-
-
-#  mongodb:
-#    container_name: ms_mongo_db
-#    image: mongo
-#    ports:
-#      - "27017:27017"
-#    volumes:
-#      #- mongo:/data
-#        - ./mongo:/data/db
-#    environment:
-#      MONGO_INITDB_ROOT_USERNAME: michael
-#      MONGO_INITDB_ROOT_PASSWORD: michael
-#      MONGO_INITDB_DATABASE: customer
-
-
+      - mongo:/data
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=michael
+      - MONGO_INITDB_ROOT_PASSWORD=michael
 
   mongo-express:
-    container_name: ms_mongo_express
     image: mongo-express
-    restart: unless-stopped
+    container_name: mongo_express
+    restart: always
     ports:
       - 8081:8081
     environment:
@@ -72,28 +60,25 @@ services:
       - ME_CONFIG_MONGODB_SERVER=mongodb
 
   zookeeper:
-      container_name: zookeeper
-      image: confluentinc/cp-zookeeper:latest
-      environment:
-        ZOOKEEPER_CLIENT_PORT: 2181
-        ZOOKEEPER_TICK_TIME: 2000
-        ZOOKEEPER_SERVER_ID: 1
-
-      ports:
-        - 22181:2181
-      networks:
-        - microservices-net
-
-
+    image: confluentinc/cp-zookeeper:latest
+    container_name: zookeeper
+    environment:
+      ZOOKEEPER_SERVER_ID: 1
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "22181:2181"
+    networks:
+      - microservices-net
   kafka:
     image: confluentinc/cp-kafka:latest
     container_name: ms_kafka
     ports:
-      - 9092:9092
+      - "9092:9092"
     depends_on:
       - zookeeper
     environment:
-      KAFKA_OFFSET_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
@@ -103,19 +88,15 @@ services:
       - microservices-net
 
   mail-dev:
-    container_name: ms_mail_dev
+    container_name: ms-mail-dev
     image: maildev/maildev
     ports:
       - 1080:1080
       - 1025:1025
 
-
 networks:
   microservices-net:
     driver: bridge
-
-
-
 
 volumes:
   postgres:
